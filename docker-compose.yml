@@ -1,0 +1,13 @@
+services:
+  airbnb-monitor:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - airbnb_data:/app/data   # données persistantes (SQLite + screenshots)
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+
+volumes:
+  airbnb_data:
