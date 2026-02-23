@@ -276,6 +276,60 @@ def generate() -> str:
   /* ── EMPTY STATE ── */
   .empty {{ text-align: center; padding: 60px 20px; color: var(--muted); }}
   .empty p {{ margin-top: 10px; font-size: .9rem; }}
+
+  /* ── CONTROL PANEL ── */
+  .control-panel {{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: flex-end;
+    gap: 32px;
+    flex-wrap: wrap;
+  }}
+  .cp-group label {{
+    display: block;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }}
+  .cp-row {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
+  .cp-sep {{ width: 1px; height: 44px; background: var(--border); align-self: center; }}
+  input[type="date"] {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--cream);
+    font-size: .9rem;
+    cursor: pointer;
+    appearance: none;
+  }}
+  input[type="date"]::-webkit-calendar-picker-indicator {{ filter: invert(.6); cursor: pointer; }}
+  .btn {{
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: .88rem;
+    cursor: pointer;
+    transition: opacity .2s;
+    white-space: nowrap;
+  }}
+  .btn:hover  {{ opacity: .85; }}
+  .btn:disabled {{ opacity: .4; cursor: not-allowed; }}
+  .btn-wine  {{ background: var(--wine);  color: var(--cream); }}
+  .btn-gold  {{ background: transparent; border: 1px solid var(--gold); color: var(--gold); }}
+  .cp-status {{
+    font-size: .82rem;
+    color: var(--muted);
+    min-width: 160px;
+  }}
+  .cp-status.running {{ color: var(--gold); }}
+  .cp-status.success {{ color: var(--up); }}
 </style>
 </head>
 <body>
@@ -293,6 +347,27 @@ def generate() -> str:
 </header>
 
 <main>
+
+  <!-- PANNEAU DE CONTRÔLE -->
+  <div class="control-panel">
+    <div class="cp-group">
+      <label>Week-end analysé</label>
+      <div class="cp-row">
+        <input type="date" id="checkin-input"  value="{cfg.CHECKIN_DATE}">
+        <span style="color:var(--muted)">→</span>
+        <input type="date" id="checkout-input" value="{cfg.CHECKOUT_DATE}">
+        <button class="btn btn-gold" onclick="updateDates()">Appliquer</button>
+      </div>
+    </div>
+    <div class="cp-sep"></div>
+    <div class="cp-group">
+      <label>Analyse manuelle</label>
+      <div class="cp-row">
+        <button class="btn btn-wine" id="scrape-btn" onclick="launchScrape()">🔍 Lancer l'analyse</button>
+        <span class="cp-status" id="cp-status"></span>
+      </div>
+    </div>
+  </div>
 
   <!-- FILTRES ACTIFS -->
   <div class="filters-row">
@@ -406,6 +481,69 @@ if (labels.length >= 1) {{
       }}
     }}
   }});
+}}
+
+// ── Panneau de contrôle ───────────────────────────────────────────────────
+
+window.addEventListener('load', () => {{
+  fetch('/api/status')
+    .then(r => r.json())
+    .then(d => {{ if (d.running) {{ setScraping(true); pollStatus(); }} }})
+    .catch(() => {{}});
+}});
+
+function setScraping(on) {{
+  const btn = document.getElementById('scrape-btn');
+  const msg = document.getElementById('cp-status');
+  if (on) {{
+    btn.disabled    = true;
+    btn.textContent = '⏳ En cours…';
+    msg.textContent = 'Récupération des données Airbnb…';
+    msg.className   = 'cp-status running';
+  }} else {{
+    btn.disabled    = false;
+    btn.textContent = '🔍 Lancer l\'analyse';
+    msg.textContent = '';
+    msg.className   = 'cp-status';
+  }}
+}}
+
+async function launchScrape() {{
+  try {{
+    const res = await fetch('/api/scrape', {{ method: 'POST' }});
+    const d   = await res.json();
+    if (d.status === 'started' || d.status === 'already_running') {{
+      setScraping(true);
+      pollStatus();
+    }}
+  }} catch(e) {{
+    document.getElementById('cp-status').textContent = '⚠ Erreur de connexion';
+  }}
+}}
+
+function pollStatus() {{
+  const timer = setInterval(async () => {{
+    try {{
+      const d = await (await fetch('/api/status')).json();
+      if (!d.running) {{ clearInterval(timer); window.location.reload(); }}
+    }} catch(e) {{ clearInterval(timer); setScraping(false); }}
+  }}, 3000);
+}}
+
+async function updateDates() {{
+  const checkin  = document.getElementById('checkin-input').value;
+  const checkout = document.getElementById('checkout-input').value;
+  if (!checkin || !checkout)  {{ alert('Renseignez les deux dates.'); return; }}
+  if (checkin >= checkout)    {{ alert("L'arrivée doit être avant le départ."); return; }}
+  try {{
+    const res = await fetch('/api/dates', {{
+      method:  'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body:    JSON.stringify({{ checkin, checkout }})
+    }});
+    if (res.ok) window.location.reload();
+    else        alert('Erreur mise à jour dates.');
+  }} catch(e) {{ alert('Erreur de connexion.'); }}
 }}
 </script>
 

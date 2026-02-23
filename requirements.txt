@@ -1,2 +1,3 @@
 playwright>=1.40.0
 schedule>=1.2.1
+flask>=3.0.0
