@@ -50,6 +50,14 @@ RUN_HOUR   = 9    # Heure d'exécution quotidienne (format 24h)
 RUN_MINUTE = 0    # Minute
 
 # -----------------------------------------------------------------------------
+# SÉCURITÉ
+# À définir dans les variables d'environnement Coolify (jamais en dur ici)
+# -----------------------------------------------------------------------------
+import os
+SECRET_KEY     = os.environ.get("SECRET_KEY",     "dev-secret-change-me")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+
+# -----------------------------------------------------------------------------
 # CHEMINS
 # -----------------------------------------------------------------------------
 DB_PATH        = "data/airbnb_market.db"

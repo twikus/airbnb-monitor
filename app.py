@@ -17,7 +17,8 @@ import sys
 import threading
 import time
 
-from flask import Flask, jsonify, request, send_file
+from functools import wraps
+from flask import Flask, jsonify, request, send_file, session, redirect
 
 import config as cfg
 import database as db
@@ -31,8 +32,71 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app  = Flask(__name__)
-PORT = int(os.environ.get("PORT", 8080))
+app            = Flask(__name__)
+app.secret_key = cfg.SECRET_KEY
+PORT           = int(os.environ.get("PORT", 8080))
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
+
+def _login_page(error=None):
+    err_html = f'<p class="error">{error}</p>' if error else ""
+    return f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion — Airbnb Market</title>
+<style>
+  :root {{ --bg:#12080d; --card:#2a1422; --border:#5c2d3a; --wine:#9b2335; --gold:#c9a84c; --gold-lt:#e8cc7a; --cream:#f5f0e8; --muted:#9e8a90; --down:#f87171; }}
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ background:var(--bg); color:var(--cream); font-family:'Segoe UI',system-ui,sans-serif;
+          min-height:100vh; display:flex; align-items:center; justify-content:center; }}
+  .card {{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:40px 36px; width:100%; max-width:380px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }}
+  .card::before {{
+    content:'🍷'; display:block; text-align:center; font-size:2.5rem; margin-bottom:16px;
+  }}
+  h1 {{ font-family:Georgia,serif; color:var(--gold-lt); font-size:1.4rem; text-align:center; margin-bottom:6px; }}
+  p.sub {{ color:var(--muted); font-size:.82rem; text-align:center; margin-bottom:28px; }}
+  label {{ font-size:.72rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); display:block; margin-bottom:6px; }}
+  input[type=password] {{
+    width:100%; background:#1e0f18; border:1px solid var(--border); border-radius:8px;
+    padding:10px 14px; color:var(--cream); font-size:.95rem; margin-bottom:20px;
+    outline:none; transition:border-color .2s;
+  }}
+  input[type=password]:focus {{ border-color:var(--gold); }}
+  button {{
+    width:100%; background:var(--wine); color:var(--cream); border:none;
+    border-radius:8px; padding:11px; font-size:.95rem; cursor:pointer; transition:opacity .2s;
+  }}
+  button:hover {{ opacity:.85; }}
+  .error {{ color:var(--down); font-size:.82rem; text-align:center; margin-bottom:16px; }}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Airbnb Market — Dijon</h1>
+    <p class="sub">Accès privé</p>
+    {err_html}
+    <form method="POST" action="/login">
+      <label>Mot de passe</label>
+      <input type="password" name="password" autofocus autocomplete="current-password">
+      <button type="submit">Connexion</button>
+    </form>
+  </div>
+</body>
+</html>"""
 
 # ── État du scraper ───────────────────────────────────────────────────────────
 _status = {
@@ -51,7 +115,24 @@ def health():
     return "ok", 200
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if request.form.get("password") == cfg.ADMIN_PASSWORD:
+            session["logged_in"] = True
+            return redirect("/")
+        return _login_page(error="Mot de passe incorrect")
+    return _login_page()
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+
 @app.route("/")
+@login_required
 def index():
     if not os.path.exists(cfg.DASHBOARD_PATH):
         db.init_db()
@@ -60,17 +141,20 @@ def index():
 
 
 @app.route("/api/status")
+@login_required
 def api_status():
     return jsonify(_status)
 
 
 @app.route("/api/analyses", methods=["GET"])
+@login_required
 def api_get_analyses():
     rows = db.get_all_analyses()
     return jsonify([dict(r) for r in rows])
 
 
 @app.route("/api/analyses", methods=["POST"])
+@login_required
 def api_add_analysis():
     data     = request.get_json(force=True)
     checkin  = (data.get("checkin")  or "").strip()
@@ -91,6 +175,7 @@ def api_add_analysis():
 
 
 @app.route("/api/analyses/<int:analysis_id>", methods=["DELETE"])
+@login_required
 def api_delete_analysis(analysis_id):
     if _status["running"] and _status.get("analysis_id") == analysis_id:
         return jsonify({"error": "Impossible de supprimer une analyse en cours de scraping"}), 409
@@ -105,6 +190,7 @@ def api_delete_analysis(analysis_id):
 
 
 @app.route("/api/scrape", methods=["POST"])
+@login_required
 def api_scrape():
     if _status["running"]:
         return jsonify({"status": "already_running"}), 409
