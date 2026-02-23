@@ -190,6 +190,28 @@ def api_delete_analysis(analysis_id):
     return jsonify({"status": "ok"})
 
 
+@app.route("/api/test-discord")
+@login_required
+def api_test_discord():
+    """Envoie une notification de test et retourne le détail de ce qui se passe."""
+    import urllib.request, json as _json
+
+    url = cfg.DISCORD_WEBHOOK_URL
+    if not url:
+        return jsonify({"status": "error", "detail": "DISCORD_WEBHOOK_URL vide ou non définie"}), 400
+
+    payload = _json.dumps({
+        "embeds": [{"title": "🔔 Test notification", "description": "Webhook Discord opérationnel ✅", "color": 0x9B2335}]
+    }).encode("utf-8")
+
+    try:
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return jsonify({"status": "ok", "http_status": resp.status, "webhook_url_prefix": url[:40] + "..."})
+    except Exception as e:
+        return jsonify({"status": "error", "detail": str(e)}), 500
+
+
 @app.route("/api/scrape", methods=["POST"])
 @login_required
 def api_scrape():
