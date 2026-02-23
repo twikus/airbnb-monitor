@@ -176,6 +176,9 @@ if __name__ == "__main__":
         db.add_analysis(cfg.CHECKIN_DATE, cfg.CHECKOUT_DATE)
         logger.info(f"Analyse par défaut créée : {cfg.CHECKIN_DATE} → {cfg.CHECKOUT_DATE}")
 
+    # Régénérer le dashboard au démarrage (pour avoir la dernière version de l'UI)
+    dash_gen.generate()
+
     # Premier relevé de toutes les analyses au démarrage
     threading.Thread(target=_run_all_analyses, daemon=True).start()
 
