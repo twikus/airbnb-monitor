@@ -62,7 +62,10 @@ def send_scrape_result(checkin: str, checkout: str, count):
         req  = urllib.request.Request(
             cfg.DISCORD_WEBHOOK_URL,
             data=data,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "DiscordBot (https://github.com/twikus/airbnb-monitor, 1.0)",
+            },
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=10) as resp:

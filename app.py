@@ -206,7 +206,7 @@ def api_test_discord():
 
     import urllib.error
     try:
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json", "User-Agent": "DiscordBot (https://github.com/twikus/airbnb-monitor, 1.0)"}, method="POST")
         with urllib.request.urlopen(req, timeout=10) as resp:
             return jsonify({"status": "ok", "http_status": resp.status, "webhook_url_prefix": url[:40] + "..."})
     except urllib.error.HTTPError as e:
