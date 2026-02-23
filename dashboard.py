@@ -249,7 +249,6 @@ def generate() -> str:
     <div class="h-title">🍷 Airbnb Market — Dijon</div>
     <div class="h-sub">Loveroom atypique · Jacuzzi · Luxe · Arrivée autonome</div>
   </div>
-  <div class="h-upd">Dernière mise à jour<br><strong>{updated}</strong></div>
 </header>
 
 <main>
