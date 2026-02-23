@@ -209,7 +209,7 @@ def api_test_discord():
         with urllib.request.urlopen(req, timeout=10) as resp:
             return jsonify({"status": "ok", "http_status": resp.status, "webhook_url_prefix": url[:40] + "..."})
     except Exception as e:
-        return jsonify({"status": "error", "detail": str(e)}), 500
+        return jsonify({"status": "error", "detail": str(e), "webhook_url_prefix": url[:60] + "..."}), 500
 
 
 @app.route("/api/scrape", methods=["POST"])
