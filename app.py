@@ -24,6 +24,7 @@ import config as cfg
 import database as db
 import scraper
 import dashboard as dash_gen
+import notify
 
 logging.basicConfig(
     level=logging.INFO,
@@ -234,6 +235,7 @@ def _run_single(checkin: str, checkout: str):
     _status["last_count"] = result["count"]
     _status["last_time"]  = result.get("timestamp")
     dash_gen.generate()
+    notify.send_scrape_result(checkin, checkout, result["count"])
     logger.info(f"✅ {result['count']} logement(s) — {checkin} / {checkout}")
 
 

@@ -54,8 +54,10 @@ RUN_MINUTE = 0    # Minute
 # À définir dans les variables d'environnement Coolify (jamais en dur ici)
 # -----------------------------------------------------------------------------
 import os
-SECRET_KEY     = os.environ.get("SECRET_KEY",     "dev-secret-change-me")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+SECRET_KEY          = os.environ.get("SECRET_KEY",          "dev-secret-change-me")
+ADMIN_PASSWORD      = os.environ.get("ADMIN_PASSWORD",      "admin")
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")  # laisser vide pour désactiver
+PROD_URL            = os.environ.get("PROD_URL",            "https://airbnb.axelduquelzar.fr")
 
 # -----------------------------------------------------------------------------
 # CHEMINS
