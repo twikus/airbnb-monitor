@@ -204,12 +204,16 @@ def api_test_discord():
         "embeds": [{"title": "🔔 Test notification", "description": "Webhook Discord opérationnel ✅", "color": 0x9B2335}]
     }).encode("utf-8")
 
+    import urllib.error
     try:
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=10) as resp:
             return jsonify({"status": "ok", "http_status": resp.status, "webhook_url_prefix": url[:40] + "..."})
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        return jsonify({"status": "error", "http_status": e.code, "discord_response": body}), 500
     except Exception as e:
-        return jsonify({"status": "error", "detail": str(e), "webhook_url_length": len(url), "webhook_url_suffix": url[-20:]}), 500
+        return jsonify({"status": "error", "detail": str(e)}), 500
 
 
 @app.route("/api/scrape", methods=["POST"])
