@@ -46,6 +46,11 @@ _status = {
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+@app.route("/health")
+def health():
+    return "ok", 200
+
+
 @app.route("/")
 def index():
     if not os.path.exists(cfg.DASHBOARD_PATH):
@@ -167,27 +172,28 @@ def _run_all_analyses():
 
 # ── Démarrage ─────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
+def _init():
+    """Initialisation en arrière-plan — Flask répond déjà pendant ce temps."""
     os.makedirs("data/screenshots", exist_ok=True)
     db.init_db()
 
-    # Créer l'analyse par défaut si la base est vide
     if not db.get_all_analyses():
         db.add_analysis(cfg.CHECKIN_DATE, cfg.CHECKOUT_DATE)
         logger.info(f"Analyse par défaut créée : {cfg.CHECKIN_DATE} → {cfg.CHECKOUT_DATE}")
 
-    # Régénérer le dashboard au démarrage (pour avoir la dernière version de l'UI)
     dash_gen.generate()
 
-    # Planification quotidienne
     hhmm = f"{cfg.RUN_HOUR:02d}:{cfg.RUN_MINUTE:02d}"
     schedule.every().day.at(hhmm).do(_run_all_analyses)
     logger.info(f"Planificateur actif — relevé automatique à {hhmm}")
 
-    def _scheduler_loop():
-        while True:
-            schedule.run_pending()
-            time.sleep(30)
+    while True:
+        schedule.run_pending()
+        time.sleep(30)
 
-    threading.Thread(target=_scheduler_loop, daemon=True).start()
+
+if __name__ == "__main__":
+    # Démarrer l'init + planificateur en arrière-plan
+    # Flask écoute immédiatement sur le port → Coolify health check OK
+    threading.Thread(target=_init, daemon=True).start()
     app.run(host="0.0.0.0", port=PORT, threaded=True)
