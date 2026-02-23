@@ -179,9 +179,6 @@ if __name__ == "__main__":
     # Régénérer le dashboard au démarrage (pour avoir la dernière version de l'UI)
     dash_gen.generate()
 
-    # Premier relevé de toutes les analyses au démarrage
-    threading.Thread(target=_run_all_analyses, daemon=True).start()
-
     # Planification quotidienne
     hhmm = f"{cfg.RUN_HOUR:02d}:{cfg.RUN_MINUTE:02d}"
     schedule.every().day.at(hhmm).do(_run_all_analyses)
