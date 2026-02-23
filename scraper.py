@@ -20,16 +20,18 @@ logger = logging.getLogger(__name__)
 # Construction de l'URL
 # ---------------------------------------------------------------------------
 
-def build_search_url() -> str:
+def build_search_url(checkin: str = None, checkout: str = None) -> str:
     """Construit l'URL Airbnb avec tous les filtres configurés."""
+    checkin  = checkin  or cfg.CHECKIN_DATE
+    checkout = checkout or cfg.CHECKOUT_DATE
     base = f"https://www.airbnb.fr/s/{cfg.LOCATION}/homes"
 
     parts = [
         ("tab_id", "home_tab"),
         ("refinement_paths[]", "/homes"),
         ("date_picker_type", "calendar"),
-        ("checkin", cfg.CHECKIN_DATE),
-        ("checkout", cfg.CHECKOUT_DATE),
+        ("checkin", checkin),
+        ("checkout", checkout),
         ("room_types[]", "Entire home/apt"),
         ("ne_lat", str(cfg.NE_LAT)),
         ("ne_lng", str(cfg.NE_LNG)),
@@ -196,12 +198,12 @@ async def _apply_self_checkin_filter(page, api_data: list):
 # Scraping principal
 # ---------------------------------------------------------------------------
 
-async def scrape() -> dict:
+async def scrape(checkin: str = None, checkout: str = None) -> dict:
     """Effectue le scraping et retourne un dict avec 'count' et 'url'."""
     from playwright.async_api import async_playwright
 
     os.makedirs(cfg.SCREENSHOT_DIR, exist_ok=True)
-    url = build_search_url()
+    url = build_search_url(checkin, checkout)
     logger.info(f"Scraping → {url}")
 
     async with async_playwright() as p:
@@ -303,6 +305,6 @@ async def scrape() -> dict:
     }
 
 
-def run() -> dict:
+def run(checkin: str = None, checkout: str = None) -> dict:
     """Point d'entrée synchrone."""
-    return asyncio.run(scrape())
+    return asyncio.run(scrape(checkin, checkout))
