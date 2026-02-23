@@ -47,13 +47,27 @@ def generate() -> str:
     table_rows_html = ""
     for r in reversed(rows):
         cnt = r["listing_count"] if r["listing_count"] is not None else "—"
-        table_rows_html += f"""
-        <tr>
-            <td>{r['scraped_at'][:10]}</td>
-            <td>{r['scraped_at'][11:16]}</td>
-            <td class="count-cell">{cnt}</td>
-            <td><a href="{r['search_url']}" target="_blank" class="url-link">Ouvrir ↗</a></td>
-        </tr>"""
+        table_rows_html += (
+            "<tr>"
+            f"<td>{r['scraped_at'][:10]}</td>"
+            f"<td>{r['scraped_at'][11:16]}</td>"
+            f"<td class='count-cell'>{cnt}</td>"
+            f"<td><a href=\"{r['search_url']}\" target=\"_blank\" class=\"url-link\">Ouvrir ↗</a></td>"
+            "</tr>"
+        )
+
+    # Bloc tableau pré-calculé (évite les f-strings imbriquées)
+    if not rows:
+        table_block = "<div class='empty'><strong>Aucun relevé</strong><p>Le premier relevé arrivera bientôt.</p></div>"
+    else:
+        table_block = (
+            "<table><thead><tr>"
+            "<th>Date</th><th>Heure</th><th>Logements</th><th>Recherche</th>"
+            "</tr></thead>"
+            f"<tbody>{table_rows_html}</tbody></table>"
+        )
+
+    chart_empty = "<p class='empty'>Pas encore assez de données — revenez demain.</p>" if len(counts) < 2 else ""
 
     html = f"""<!DOCTYPE html>
 <html lang="fr">
@@ -322,7 +336,7 @@ def generate() -> str:
   <!-- GRAPHIQUE -->
   <div class="chart-card">
     <h2>📈 Évolution du nombre de logements disponibles</h2>
-    {"<p class='empty'>Pas encore assez de données — relancez le scraper demain.</p>" if len(counts) < 2 else ""}
+    {chart_empty}
     <div class="chart-wrapper">
       <canvas id="chart"></canvas>
     </div>
@@ -331,21 +345,7 @@ def generate() -> str:
   <!-- TABLEAU HISTORIQUE -->
   <div class="table-card">
     <h2>🗂 Historique des relevés</h2>
-    {"<div class='empty'><strong>Aucun relevé</strong><p>Lancez <code>python main.py</code> pour commencer la collecte.</p></div>" if not rows else f"""
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Heure</th>
-          <th>Logements</th>
-          <th>Recherche</th>
-        </tr>
-      </thead>
-      <tbody>
-        {table_rows_html}
-      </tbody>
-    </table>
-    """}
+    {table_block}
   </div>
 
 </main>
